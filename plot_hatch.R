@@ -6,9 +6,8 @@ library(dplyr)
 ################## PLOT ########################
 h = raster("./plots/hatchraster/hatch_day_at_20220529.tif")
 hatch = h[]
-aus = "C:/Users/james/Dropbox (Personal)/Maps/Australia by state ABS/STE11aAust.shp" %>% 
-  read_sf() %>% 
-  st_simplify(dTolerance = 1000)
+aus = read_sf("./aus/aus.shp")
+
 # plot model output
 currentday = Sys.Date() %>% 
   format("%j") %>% as.numeric()
