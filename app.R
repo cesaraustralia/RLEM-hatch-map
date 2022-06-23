@@ -4,6 +4,7 @@ library(raster)
 library(tmap)
 library(dplyr)
 library(stringr)
+library(leaflet)
 
 
 rasters = list.files("./plots/hatchraster/", ".tif", full.names = TRUE)
@@ -18,7 +19,7 @@ ui <- fluidPage(
     bottom = 0,
     left = 0,
     right = 0,
-    tmapOutput(height = "100%", outputId = "map")
+    leafletOutput(height = "100%", outputId = "map")
     
   ),
   HTML('<br>'),
@@ -45,42 +46,10 @@ server <- function(input, output) {
   # 1. It is "reactive" and therefore should be automatically
   #    re-executed when inputs (input$bins) change
   # 2. Its output type is a plot
-  output$map <- renderTmap({
-    
-    hatch = raster(rasters[which(rdates == input$date)])
-    h = hatch[]
-    
-    # plot model output
-    currentday = max(rdates) %>%
-      format("%j") %>% as.numeric()
-    hatchtime = tibble(hatchtime = h - currentday)  %>%
-      mutate(buckets = case_when(hatchtime < -14 ~ 1,
-                                 hatchtime <= 0   ~ 2,
-                                 hatchtime > 0  ~ 3)) %>%
-      pull(buckets)
-    
-    hatch[] = hatchtime
-    hatch[h == 0] = NA
-    labs = c(
-      "hatched more than 2 weeks ago",
-      "hatched less than 2 weeks ago",
-      "hatching in coming weeks"
-    )
-    
-    pal = RColorBrewer::brewer.pal(4, "Pastel1")
-    unique(h[])
-    
-    tm_shape(hatch) +
-      tm_raster(
-        title = sprintf("Predicted hatch status\nat %s",
-                        format(max(rdates), "%d %b %Y")),
-        palette = pal,
-        style = "cat",
-        labels = labs,
-        alpha = 0.5
-      ) +
-      tm_view(view.legend.position = c("left", "bottom"))
-    
+  output$map <- renderLeaflet({
+    leaflet() %>%
+      addTiles() %>%  # Add default OpenStreetMap map tiles
+      addMarkers(lng=174.768, lat=-36.852, popup="The birthplace of R")
   })
   
 }
