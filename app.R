@@ -38,18 +38,34 @@ ui <- fluidPage(
 
 # Define server logic required to draw a histogram ----
 server <- function(input, output) {
-  # Histogram of the Old Faithful Geyser Data ----
-  # with requested number of bins
-  # This expression that generates a histogram is wrapped in a call
-  # to renderPlot to indicate that:
-  #
-  # 1. It is "reactive" and therefore should be automatically
-  #    re-executed when inputs (input$bins) change
-  # 2. Its output type is a plot
   output$map <- renderLeaflet({
+    hatch = raster(rasters[which(rdates == input$date)])
+    h = hatch[]
+    
+    # plot model output
+    currentday = max(rdates) %>%
+      format("%j") %>% as.numeric()
+    hatchtime = tibble(hatchtime = h - currentday)  %>%
+      mutate(buckets = case_when(hatchtime < -14 ~ 1,
+                                 hatchtime <= 0   ~ 2,
+                                 hatchtime > 0  ~ 3)) %>%
+      pull(buckets)
+    
+    hatch[] = hatchtime
+    hatch[h == 0] = NA
+    labs = c(
+      "hatched more than 2 weeks ago",
+      "hatched less than 2 weeks ago",
+      "hatching in coming weeks"
+    )
+    
+    pal = RColorBrewer::brewer.pal(3, "Pastel1")
+    
     leaflet() %>%
       addTiles() %>%  # Add default OpenStreetMap map tiles
-      addMarkers(lng=174.768, lat=-36.852, popup="The birthplace of R")
+      addRasterImage(hatch, colors = pal, opacity = 0.7) %>% 
+      addLegend(position = "bottomleft", colors = pal, labels = labs)
+    
   })
   
 }
