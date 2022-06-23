@@ -1,7 +1,6 @@
 library(shiny)
 library(sf)
 library(raster)
-library(tmap)
 library(dplyr)
 library(stringr)
 library(leaflet)
