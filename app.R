@@ -5,11 +5,9 @@ library(dplyr)
 library(stringr)
 library(leaflet)
 
-
-rasters = list.files("./plots/hatchraster/", ".tif", full.names = TRUE)
+rasters = list.files("./plots/hatchraster/", "(.tif)", full.names = TRUE)
+rasters=rasters[!grepl('aux.xml', rasters)]
 rdates = as.Date(str_extract(rasters, "\\d+(?=.tif)"), "%Y%m%d")
-
-
 
 # Define UI for app that draws a histogram ----
 ui <- fluidPage(
