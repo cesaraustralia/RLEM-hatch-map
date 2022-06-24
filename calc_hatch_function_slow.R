@@ -5,6 +5,7 @@ calc_hatch <- function(TMIN, TMAX, RAIN, hatchrasterfile,
   
   # Inputs:
   # TMIN, TMAX, RAIN are rasters of locations holding daily minimum temperature, maximum temperature, and rainfall respectively ordered by julian day. 
+  # hatchrasterfile holds the result of the previous simulation with the date stored on the file name as hatch_day_at_%Y%m%d.tif
   
   # Outputs:  
   # hatch is a list of locations holding the predicted hatch julian day
@@ -23,17 +24,14 @@ calc_hatch <- function(TMIN, TMAX, RAIN, hatchrasterfile,
     raster::nlayers(RAIN),
     raster::nlayers(TMAX)))
   
-  # Initialise mean temp array
-  MDT <- TMIN 
-  MDT[] <- 0
   
   # Threshold in Celsius
-  MDTthresh = rep(20.5, length(MDT[[1]])) # WA 
+  MDTthresh = rep(20.5, length(TMIN[[1]])) # WA 
   MDTthresh[longitude[] > 130] = 16 # not WA
   
   # initialise state variables
-  init_grid = rep(0, length(MDT[[1]]))
-  MDT10 <- rain5 <- penalty <- init_grid
+  init_grid = rep(0, length(TMIN[[1]]))
+  rain5 = init_grid
   
   # check for relevant previous simulations or restart sim for new year
   previous_sim_date = hatchrasterfile |> 
@@ -61,35 +59,28 @@ calc_hatch <- function(TMIN, TMAX, RAIN, hatchrasterfile,
     
   }
 
-  # create penalty of number of day degrees over threshold
-  calc_penalty = function(x) { 
-    x = x - 19
-    x[x<0] = 0
-    x
-  }
-  
-  for(i in prestartday:ndays){
-    # load MDT for diapause break calculation (McDonald 2015)
-    cat(paste('\ncreating MDT for doy: ',i))
-    buff<-TMAX[[i]] - (TMAX[[i]] - TMIN[[i]])/4
-    MDT[[i]] = buff[]
-    
-    
-  }
-  
   
   for(day in startday:ndays){
     cat(paste('\ncalc hatch for doy: ',day))
     prev10 = (day-9):day
-    # MDT10 = Reduce(`+`, MDT[prev10])/length(prev10) # mean
-    MDT10 = overlay(MDT[[prev10]], fun=mean)
-    MDT10[is.na(MDT10)] = 0
     
+    MDT10 = init_grid
+    
+    # create penalty of number of day degrees over 19C threshold
+    penalty = init_grid
+    for (pd in prev10) {
 
-    penalty = calc_penalty(MDT[[prev10]])
-    penalty = overlay(penalty, fun=sum)
-    # penalty = lapply(MDT[[prev10]], calc_penalty) # mean
-    # penalty = Reduce(`+`, penalty)
+      MDTi = (TMAX[[pd]] - (TMAX[[pd]] - TMIN[[pd]])/4)
+      
+      MDT10 = MDT10 + MDTi
+
+      penalty[] = penalty[] + pmax(MDTi[] - 19, 0)
+
+    }
+    MDT10 = MDT10/length(prev10)
+    penalty = penalty/length(prev10) # in contrast to garry who only averaged across the days above 19C
+    MDT10[is.na(MDT10)] = 0
+    penalty[is.na(penalty)] = 0
     
     # rainfall over past 5 days
     prev5 = (day-10):(day-14)
@@ -102,6 +93,5 @@ calc_hatch <- function(TMIN, TMAX, RAIN, hatchrasterfile,
       hatch[index]<- day + 8*penalty[index]/10  # see p. 264 mcdonald 2016
     }
   }
-  
   return(hatch)
 }

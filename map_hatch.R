@@ -1,9 +1,7 @@
 library(tidyverse)
 library(raster)
-library(tmap)
-library(sf)
-
 source("calc_hatch_function_slow.R")
+
 
 # current year
 cyear = format(Sys.Date(), "%Y")
@@ -36,8 +34,8 @@ download.silo = function(var, date, downloadfolder = "./") {
 vars = c("daily_rain","min_temp","max_temp")
 
 warning("here!")
-dates = seq.Date(as.Date(paste0(cyear,"-01-01")), Sys.Date(), by = 1)
-# dates = seq.Date(as.Date(paste0(cyear,"-01-01")), as.Date("2022-05-16"), by = 1)
+dates = seq.Date(as.Date(paste0(cyear,"-01-01")), Sys.Date()-1, by = 1)
+# dates = seq.Date(as.Date(paste0(cyear,"-01-01")), as.Date("2022-05-29"), by = 1)
 
 for(date in dates){
   for(var in vars){
@@ -49,7 +47,9 @@ for(date in dates){
 rainfiles = list.files(file.path(downloadfolder,"/daily_rain/"), full.names=T)
 tminfiles = list.files(file.path(downloadfolder,"/min_temp/"), full.names=T)
 tmaxfiles = list.files(file.path(downloadfolder,"/max_temp/"), full.names=T)
-  
+
+
+# set the simulation day by restricting raster stack here for historical sims  
 RAIN = stack(rainfiles)
 TMIN = stack(tminfiles)
 TMAX = stack(tmaxfiles)
@@ -70,15 +70,14 @@ plot(h)
 # find the min max date available for each climate data
 findmaxdate = function(filelocation) {
   filelocation |>
-  list.files() |> 
-  stringr::str_extract("\\d+") |>
+  stringr::str_extract("\\d{8}") |>
   as.integer() |>
   max()
 }
 maxsilodate = min(
-  findmaxdate(file.path(downloadfolder,"/daily_rain/")), 
-  findmaxdate(file.path(downloadfolder,"/min_temp/")), 
-  findmaxdate(file.path(downloadfolder,"/max_temp/")))
+  findmaxdate(rainfiles), 
+  findmaxdate(tminfiles), 
+  findmaxdate(tmaxfiles))
 
 writeRaster(h, sprintf("./plots/hatchraster/hatch_day_at_%s.tif", maxsilodate))
 
