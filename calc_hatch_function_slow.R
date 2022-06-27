@@ -90,7 +90,7 @@ calc_hatch <- function(TMIN, TMAX, RAIN, hatchrasterfile,
     
     index<-rain5[]>5 & MDT10[]<MDTthresh & hatch[]==0
     if(any(index)){
-      hatch[index]<- day + 8*penalty[index]/10  # see p. 264 mcdonald 2016
+      hatch[index]<- day + 8*penalty[index]  # see p. 264 mcdonald 2016
     }
   }
   return(hatch)
