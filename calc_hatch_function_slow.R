@@ -59,7 +59,8 @@ calc_hatch <- function(TMIN, TMAX, RAIN, hatchrasterfile,
     
   }
 
-  
+  if(startday >= ndays) return(hatch)
+
   for(day in startday:ndays){
     cat(paste('\ncalc hatch for doy: ',day))
     prev10 = (day-9):day
